@@ -24,7 +24,7 @@ class DydbRequestManager:
         objects = list(set(objects))
         chunks = [objects[x:x+20] for x in range(0, len(objects), 20)] 
         for chunk in chunks:
-            return self.client.batch_write_item(RequestItems=generate_cache_table_request(chunk, key))
+            self.client.batch_write_item(RequestItems=generate_cache_table_request(chunk, key))
 
     def load_query_cache(self, key, messages):
         response = self.client.put_item(
