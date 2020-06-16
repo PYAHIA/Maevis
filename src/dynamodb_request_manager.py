@@ -18,7 +18,7 @@ class DydbRequestManager:
                         aws_secret_access_key=aws_secret_key, 
                         region_name=region
                     )
-       # self.clear_cache()
+        self.clear_cache()
         
     def load_table_key_mapping(self, objects, key):
         objects = list(set(objects))
