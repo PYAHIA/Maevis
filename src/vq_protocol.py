@@ -1,8 +1,9 @@
 from twisted.internet import protocol, reactor
 from vertica_wire_handler import VerticaWireHandler
 from query_cache import QueryCache
-from constants import (HOST, TARGET_PORT, _END_PATTERN,_REQUEST_EXT_ORD, _REQUEST_ORD,_END_JDBC_PATTERN, MAX_RESULT_SIZE,
-_RESPONSE_TERMINIATIONS,_EXT_RESPONSE_ORD,_PREP_STMT_ACK_ORDS,_HEADER_RESP_ORD,
+from constants import (HOST, TARGET_PORT,_REQUEST_EXT_ORD, MAX_RESULT_SIZE,
+_RESPONSE_TERMINIATIONS,_EXT_RESPONSE_ORD,_PREP_STMT_ACK_ORDS,
+_HEADER_RESP_ORD,
 _PLAN_REQUEST_ORD,
 _EXECUTE_REQUEST_ORD,
 _BIND_REQUEST_ORD
@@ -46,16 +47,10 @@ class VSQLServerProtocol(protocol.Protocol):
          """ Write data to cache and clear msg in memory"""
          if len(str(self.vsql_msg.rows).encode()) < _MAX_RESULT_SIZE:
             query_cache.write_to_cache(self.vsql_msg)
-            print(query_cache.nosql_cache_table[self.vsql_msg.key])
             self.vsql_msg = None 
             
     def dataReceived(self, data):
-        """ Handle messages from Client to Server"""
-        # if data[0] == 112:
-        #     print("\nr",b"p\x00\x00\x00")
-        # else:
-        #     print("\nr", data)
-        
+        """ Handle messages from Client to Server"""        
         if data[0] == 0: #Retrieve username from handshake
             self.auth(data)
 
@@ -84,7 +79,7 @@ class VSQLServerProtocol(protocol.Protocol):
 
     def write(self, data):
         """ Handle Messages from Server to Client"""
-        print("\nw", data)
+        #print("\nw", data)
         if self.vsql_msg:
             if self.vsql_msg.streaming_header: #streaming series of header messages
                 self.vsql_msg.append_extended_header_response(data)
@@ -114,7 +109,6 @@ class VSQLServerProtocol(protocol.Protocol):
             if b"user" in data:
                 self._user = re.search("user\x00(.+)\x00",data.decode('latin1')).group(1).split("\x00")[0]
                 self.build_grants()
-                print("BUILDING GRANTS")
         
     @property
     def validate_query_permissions(self):
@@ -136,7 +130,6 @@ class VSQLServerProtocol(protocol.Protocol):
         for role in roles:
             grants += list(self.priv_mgr.grant_role_df.loc[self.priv_mgr.grant_role_df.grantee == role].obj.values)
         self._read_grants = grants
-        print(self._read_grants[:5])
                 
         
 class ClientProtocol(protocol.Protocol):
