@@ -28,8 +28,6 @@ class VSQLServerProtocol(protocol.Protocol):
 #see if we can bottle b'C with subsequent. IF subsquent can hash, proceed
         
     def dataReceived(self, data):
-        print("\nr")
-        print(data)
         """ Handle messages from Client to Server"""
         #if data[0] == 0 and not self._user:
         # self.auth(data)
@@ -43,13 +41,8 @@ class VSQLServerProtocol(protocol.Protocol):
                 if data[0] == 68:
                     for msg in self.vsql_msg.cached_header:
                         self.transport.write(msg)
-                        print(msg)
-                    print("HEADER RESPONSE")
                 elif data[0] == 66:
-                    print("SENDING DATA")
-                    print(len( self.vsql_msg.cached_data))
                     for row in self.vsql_msg.cached_data:
-                        print(row)
                         self.transport.write(row)
                 elif data[0]== 67:
                     self.vsql_msg = VerticaWireHandler(_REQUEST_EXT_ORD)
@@ -66,7 +59,6 @@ class VSQLServerProtocol(protocol.Protocol):
                 if self.vsql_msg.key in query_cache.cache_keys:
                     self.vsql_msg.acknowledgement, self.vsql_msg.cached_header, self.vsql_msg.cached_data = query_cache.cache_access(self.vsql_msg.key)
                     self.transport.write(self.vsql_msg.acknowledgement)
-                    print("ACKNOWLEDGEMENT")
                 else:
                     self.client.write(data)
             elif data[0] == 67:
@@ -97,20 +89,17 @@ class VSQLServerProtocol(protocol.Protocol):
                 if data[-2:] not in [b'\x05T', b'\x05I']:
                     self.vsql_msg.stream_header()      
                     print("STREAM HEADER")
-            elif data[0] in (51,49):
+            elif data[0] in (51,49): #response to prepared statement
                 self.vsql_msg.set_extended_acknowledgement(data)
-            elif data[0] in (84, 50):
-                print(data[2:])
+            elif data[0] in (84, 50): #response to execute
                 self.vsql_msg.add_row_response(data)
                 if data[-2:] not in [b'\x05T', b'\x05I']:
-                    self.vsql_msg.stream_message()                     
+                    self.vsql_msg.stream_message()             
+                    
         self.transport.write(data)
         
                 
 class ClientProtocol(protocol.Protocol):
-    """
-        Make things a little neater
-    """
     def connectionMade(self):
         self.factory.server.client = self
         self.write(self.factory.server.buffer)
