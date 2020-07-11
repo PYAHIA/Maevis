@@ -8,7 +8,7 @@ from constants import LOCAL_PORT
 from vq_protocol import VSQLServerProtocol
 from privilege_manager import PrivilegeManager
 
-TEST_MODE = True
+TEST_MODE = False
 if __name__ == '__main__':
     factory = protocol.ServerFactory()
     factory.protocol = VSQLServerProtocol
@@ -16,7 +16,7 @@ if __name__ == '__main__':
         factory.protocol.priv_mgr = None
     else:
         factory.protocol.priv_mgr = PrivilegeManager()
-    factory.protocol.test_mode = True
+
     
     print("\nready")
     

@@ -20,7 +20,7 @@ class VSQLServerProtocol(protocol.Protocol):
         self.client = None
         self.sp_data = [None, None]
         self._user = None
-        self.test_mode = True
+        self.test_mode = False
 
     def connectionMade(self):
         """ When client connection is established, open a connection to remote DB """
@@ -46,15 +46,17 @@ class VSQLServerProtocol(protocol.Protocol):
          """ Write data to cache and clear msg in memory"""
          if len(str(self.vsql_msg.rows).encode()) < _MAX_RESULT_SIZE:
             query_cache.write_to_cache(self.vsql_msg)
-            print("HEEEERE")
             print(query_cache.nosql_cache_table[self.vsql_msg.key])
             self.vsql_msg = None 
             
     def dataReceived(self, data):
-        print("\nr", data)
         """ Handle messages from Client to Server"""
+        # if data[0] == 112:
+        #     print("\nr",b"p\x00\x00\x00")
+        # else:
+        #     print("\nr", data)
         
-        if data[0] == -1: #handshake
+        if data[0] == 0: #Retrieve username from handshake
             self.auth(data)
 
         if self.client:
@@ -112,6 +114,7 @@ class VSQLServerProtocol(protocol.Protocol):
             if b"user" in data:
                 self._user = re.search("user\x00(.+)\x00",data.decode('latin1')).group(1).split("\x00")[0]
                 self.build_grants()
+                print("BUILDING GRANTS")
         
     @property
     def validate_query_permissions(self):
@@ -133,6 +136,7 @@ class VSQLServerProtocol(protocol.Protocol):
         for role in roles:
             grants += list(self.priv_mgr.grant_role_df.loc[self.priv_mgr.grant_role_df.grantee == role].obj.values)
         self._read_grants = grants
+        print(self._read_grants[:5])
                 
         
 class ClientProtocol(protocol.Protocol):
