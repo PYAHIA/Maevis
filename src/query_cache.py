@@ -45,9 +45,8 @@ class QueryCache:
         self.query_logs.append(msg.message)
         
         if _CACHE_LOCATION == 'MEMORY':
-            self.dict_cache[msg.key] = responses
+            self.dict_cache[msg.key] = None #deprecating
         elif _CACHE_LOCATION == 'NOSQL':
-            #self.nosql_cache_keys.append(msg.key)      
             self.nosql_client.load_query_cache(msg.key, msg.rows, msg.header_response, msg.acknowledgement)
 
             data = self.parse_query(msg)

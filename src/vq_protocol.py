@@ -20,6 +20,7 @@ class VSQLServerProtocol(protocol.Protocol):
         self.client = None
         self.sp_data = [None, None]
         self._user = None
+        self.test_mode = True
 
     def connectionMade(self):
         """ When client connection is established, open a connection to remote DB """
@@ -45,11 +46,17 @@ class VSQLServerProtocol(protocol.Protocol):
          """ Write data to cache and clear msg in memory"""
          if len(str(self.vsql_msg.rows).encode()) < _MAX_RESULT_SIZE:
             query_cache.write_to_cache(self.vsql_msg)
+            print("HEEEERE")
+            print(query_cache.nosql_cache_table[self.vsql_msg.key])
             self.vsql_msg = None 
             
     def dataReceived(self, data):
         print("\nr", data)
         """ Handle messages from Client to Server"""
+        
+        if data[0] == -1: #handshake
+            self.auth(data)
+
         if self.client:
             if self.vsql_msg and self.vsql_msg.cached_header:
                 self.send_from_cache(data)
@@ -57,7 +64,7 @@ class VSQLServerProtocol(protocol.Protocol):
                 self.write_to_cache()
             elif data[0] == _REQUEST_EXT_ORD and self.vsql_msg:
                 self.vsql_msg.set_message(data)
-                if self.vsql_msg.key in query_cache.cache_keys:
+                if self.vsql_msg.key in query_cache.cache_keys and self.validate_query_permissions:
                     self.vsql_msg.acknowledgement, self.vsql_msg.cached_header, self.vsql_msg.cached_data = query_cache.cache_access(self.vsql_msg.key)
                     self.transport.write(self.vsql_msg.acknowledgement) #from client back to client
                 else:
@@ -97,7 +104,37 @@ class VSQLServerProtocol(protocol.Protocol):
                     self.vsql_msg.stream_message()             
                     
         self.transport.write(data)
+        
+
+    def auth(self, data): #get username. Ideally, this might be a able to be a bit cleaner TODO: Valdiate JDBC VS ODBC
+        """ Grab user_name during initial handshake"""
+        if not self.test_mode:
+            if b"user" in data:
+                self._user = re.search("user\x00(.+)\x00",data.decode('latin1')).group(1).split("\x00")[0]
+                self.build_grants()
+        
+    @property
+    def validate_query_permissions(self):
+        """ Check objects in cache, validate permissions are granted on all objects"""
+        if self.test_mode:
+            return True
+        targets_requested = query_cache.cache_table[self.vsql_msg.key]
+        access_granted = True
+        for target in targets_requested:
+            if target not in self._read_grants:
+                access_granted = False
+                break
+        return access_granted
                 
+    def build_grants(self):
+        """ Get a list of object-grants on session-user"""
+        roles = list(self.priv_mgr.user_role_df.loc[self.priv_mgr.user_role_df.user_name == self._user]["role"].values)
+        grants = list(self.priv_mgr.grant_user_df.loc[self.priv_mgr.grant_user_df.grantee == self._user].obj.values)
+        for role in roles:
+            grants += list(self.priv_mgr.grant_role_df.loc[self.priv_mgr.grant_role_df.grantee == role].obj.values)
+        self._read_grants = grants
+                
+        
 class ClientProtocol(protocol.Protocol):
     def connectionMade(self):
         self.factory.server.client = self
