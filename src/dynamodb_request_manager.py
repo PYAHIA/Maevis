@@ -18,7 +18,7 @@ class DydbRequestManager:
                         aws_secret_access_key=aws_secret_key, 
                         region_name=region
                     )
-       # self.clear_cache()
+        #self.clear_cache()
         
     def load_table_key_mapping(self, objects, key):
         objects = list(set(objects))
@@ -26,7 +26,12 @@ class DydbRequestManager:
         for chunk in chunks:
             return self.client.batch_write_item(RequestItems=generate_cache_table_request(chunk, key))
 
-    def load_query_cache(self, key, messages):
+    def load_query_cache(self, key, messages, header, acknowledgement):
+        if header == None:
+            header = ""
+        if acknowledgement == None:
+            acknowledgement = ""
+            
         response = self.client.put_item(
             Item={
                 'request_key': {
@@ -34,6 +39,12 @@ class DydbRequestManager:
                     },
                 'message' : {
                     'S' : str(messages)
+                    },
+                'header' : {
+                    'S' : str(header)
+                    },
+                'acknowledgement' : {
+                    'S' : str(acknowledgement)
                     }
             },
             TableName=QUERY_CACHE_NAME,
@@ -48,11 +59,11 @@ class DydbRequestManager:
                     'S' : key
                     },
                 },
-                AttributesToGet=["message"]
+                AttributesToGet=["message", "header", "acknowledgement"]
             )
         except:
             return None
-        return literal_eval(response["Item"]["message"]["S"])
+        return literal_eval(response["Item"]["acknowledgement"]["S"]), literal_eval(response["Item"]["header"]["S"]), literal_eval(response["Item"]["message"]["S"])
 
     def clear_cache(self):
         self.rebuild_object_key_table()

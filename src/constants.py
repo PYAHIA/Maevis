@@ -1,9 +1,10 @@
 
 
 #Connection Info
-HOST = '' #Vertica DB Server
+HOST = 'bidbpre.chewy.local' #Vertica DB Server
 TARGET_PORT = 5433 #Database Port
 LOCAL_PORT = 7432 #Proxy; Port ODBC/JDBC would connect to
+TARGET_DATABASE = 'bidb'
 
 _CACHE_LOCATION = 'NOSQL' #|'MEMORY' Features for memory are limited and less scalable. This should primarly be used for test purposes.
 
@@ -31,6 +32,7 @@ _END_PATTERN = b"\x05T"
 _END_JDBC_PATTERN = b"\x05I"
 _RESPONSE_ORD = 84 
 _REQUEST_ORD = 81 
+_REQUEST_EXT_ORD = 80
 
 if _CACHE_LOCATION == "NOSQL":
     import keyring
