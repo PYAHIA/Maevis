@@ -18,7 +18,3 @@ if __name__ == '__main__':
     
     reactor.listenTCP(LOCAL_PORT, factory)
     reactor.run()
-    
-    
-#b'D\x00\x00\x00\x1bS_PLAN0x7fe21a21f120_8\x00S\x00\x00\x00\x04'
-    #b'C\x00\x00\x00\x1bS_PLAN0x7fe217fad300_7\x00'
